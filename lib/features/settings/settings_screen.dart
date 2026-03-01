@@ -1,0 +1,436 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../app/theme.dart';
+import '../../core/providers.dart';
+import '../../core/widgets/app_drawer.dart';
+import '../../core/constants/app_constants.dart';
+
+class SettingsScreen extends ConsumerStatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  // Shop Settings
+  final _shopNameCtrl = TextEditingController(text: AppConstants.shopName);
+  final _shopAddressCtrl = TextEditingController(text: AppConstants.shopAddress);
+  final _gstCtrl = TextEditingController(text: AppConstants.gstNumber);
+  final _phoneCtrl = TextEditingController(text: '080-12345678');
+
+  // Receipt settings
+  String _receiptHeader = AppConstants.receiptHeader;
+  String _receiptFooter = AppConstants.receiptFooter;
+  bool _showLogo = true;
+  bool _showGST = true;
+  String _paperSize = '80mm';
+
+  // Tax settings
+  bool _gstEnabled = true;
+  bool _inclusiveTax = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDarkMode = ref.watch(isDarkModeProvider);
+    final currentUser = ref.watch(authProvider);
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Settings')),
+      drawer: const AppDrawer(),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // Profile section
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
+                    child: Text(
+                      (currentUser?.name ?? 'U')[0].toUpperCase(),
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(currentUser?.name ?? 'User', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text(currentUser?.email ?? '', style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                        Container(
+                          margin: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(currentUser?.roleLabel ?? '', style: const TextStyle(fontSize: 11, color: AppTheme.primaryColor, fontWeight: FontWeight.w600)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Edit profile (mock)'))),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // App Preferences
+          _sectionHeader('App Preferences', Icons.tune),
+          const SizedBox(height: 8),
+          Card(
+            child: Column(
+              children: [
+                SwitchListTile(
+                  title: const Text('Dark Mode'),
+                  subtitle: const Text('Switch between light and dark theme'),
+                  secondary: Icon(isDarkMode ? Icons.dark_mode : Icons.light_mode, color: AppTheme.primaryColor),
+                  value: isDarkMode,
+                  onChanged: (v) => ref.read(isDarkModeProvider.notifier).state = v,
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.language, color: AppTheme.primaryColor),
+                  title: const Text('Language'),
+                  subtitle: const Text('English'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _showLanguagePicker(),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.currency_rupee, color: AppTheme.primaryColor),
+                  title: const Text('Currency'),
+                  subtitle: const Text('Indian Rupee (₹)'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Currency selection (mock)'))),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Shop Settings
+          _sectionHeader('Shop Settings', Icons.store),
+          const SizedBox(height: 8),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  TextField(controller: _shopNameCtrl, decoration: const InputDecoration(labelText: 'Shop Name', prefixIcon: Icon(Icons.store))),
+                  const SizedBox(height: 12),
+                  TextField(controller: _shopAddressCtrl, decoration: const InputDecoration(labelText: 'Address', prefixIcon: Icon(Icons.location_on)), maxLines: 2),
+                  const SizedBox(height: 12),
+                  TextField(controller: _gstCtrl, decoration: const InputDecoration(labelText: 'GST Number', prefixIcon: Icon(Icons.receipt))),
+                  const SizedBox(height: 12),
+                  TextField(controller: _phoneCtrl, decoration: const InputDecoration(labelText: 'Phone', prefixIcon: Icon(Icons.phone))),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Shop settings saved (mock)'))),
+                      child: const Text('Save Shop Settings'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Receipt Settings
+          _sectionHeader('Receipt Settings', Icons.receipt_long),
+          const SizedBox(height: 8),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  DropdownButtonFormField<String>(
+                    initialValue: _paperSize,
+                    decoration: const InputDecoration(labelText: 'Paper Size', prefixIcon: Icon(Icons.straighten)),
+                    items: const [
+                      DropdownMenuItem(value: '58mm', child: Text('58mm (Thermal)')),
+                      DropdownMenuItem(value: '80mm', child: Text('80mm (Thermal)')),
+                      DropdownMenuItem(value: 'A4', child: Text('A4')),
+                    ],
+                    onChanged: (v) => setState(() => _paperSize = v!),
+                  ),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    title: const Text('Show Logo'),
+                    value: _showLogo,
+                    onChanged: (v) => setState(() => _showLogo = v),
+                  ),
+                  SwitchListTile(
+                    title: const Text('Show GST Details'),
+                    value: _showGST,
+                    onChanged: (v) => setState(() => _showGST = v),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    decoration: const InputDecoration(labelText: 'Receipt Header'),
+                    controller: TextEditingController(text: _receiptHeader),
+                    onChanged: (v) => _receiptHeader = v,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    decoration: const InputDecoration(labelText: 'Receipt Footer'),
+                    controller: TextEditingController(text: _receiptFooter),
+                    onChanged: (v) => _receiptFooter = v,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Print test receipt (mock)'))),
+                          icon: const Icon(Icons.print, size: 18),
+                          label: const Text('Test Print'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Receipt settings saved (mock)'))),
+                          child: const Text('Save'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Tax Configuration
+          _sectionHeader('Tax Configuration', Icons.calculate),
+          const SizedBox(height: 8),
+          Card(
+            child: Column(
+              children: [
+                SwitchListTile(
+                  title: const Text('Enable GST'),
+                  subtitle: const Text('Apply GST on all taxable products'),
+                  value: _gstEnabled,
+                  onChanged: (v) => setState(() => _gstEnabled = v),
+                ),
+                const Divider(height: 1),
+                SwitchListTile(
+                  title: const Text('Inclusive Tax'),
+                  subtitle: const Text('Product prices include tax'),
+                  value: _inclusiveTax,
+                  onChanged: (v) => setState(() => _inclusiveTax = v),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  title: const Text('Default Tax Rate'),
+                  subtitle: const Text('5%, 12%, 18%, 28%'),
+                  trailing: const Text('18%', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
+                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tax rate config (mock)'))),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Printer Settings
+          _sectionHeader('Printer Settings', Icons.print),
+          const SizedBox(height: 8),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.success.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.print, color: AppTheme.success),
+                  ),
+                  title: const Text('Thermal Printer (USB)'),
+                  subtitle: const Text('Connected • 80mm'),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.success.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text('Connected', style: TextStyle(fontSize: 11, color: AppTheme.success, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.bluetooth, color: Colors.grey),
+                  ),
+                  title: const Text('Bluetooth Printer'),
+                  subtitle: const Text('Not connected'),
+                  trailing: OutlinedButton(
+                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Scanning for Bluetooth printers (mock)...'))),
+                    child: const Text('Scan'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Data Management
+          _sectionHeader('Data Management', Icons.storage),
+          const SizedBox(height: 8),
+          Card(
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.backup, color: AppTheme.primaryColor),
+                  title: const Text('Backup Data'),
+                  subtitle: const Text('Last backup: Today, 10:30 AM'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Creating backup (mock)...'))),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.restore, color: AppTheme.accentColor),
+                  title: const Text('Restore Data'),
+                  subtitle: const Text('Restore from backup file'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Restore data (mock)'))),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.delete_forever, color: AppTheme.error),
+                  title: const Text('Clear All Data', style: TextStyle(color: AppTheme.error)),
+                  subtitle: const Text('Delete all local data'),
+                  trailing: const Icon(Icons.chevron_right, color: AppTheme.error),
+                  onTap: () => _showClearDataDialog(),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // About
+          _sectionHeader('About', Icons.info),
+          const SizedBox(height: 8),
+          Card(
+            child: Column(
+              children: [
+                const ListTile(
+                  leading: Icon(Icons.info_outline, color: AppTheme.primaryColor),
+                  title: Text('App Version'),
+                  trailing: Text('1.0.0', style: TextStyle(fontWeight: FontWeight.w600)),
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.policy, color: AppTheme.primaryColor),
+                  title: const Text('Privacy Policy'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {},
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.description, color: AppTheme.primaryColor),
+                  title: const Text('Terms & Conditions'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {},
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Logout
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: () {
+                ref.read(authProvider.notifier).logout();
+                context.go('/login');
+              },
+              icon: const Icon(Icons.logout, color: AppTheme.error),
+              label: const Text('Logout', style: TextStyle(color: AppTheme.error, fontSize: 16)),
+              style: OutlinedButton.styleFrom(side: const BorderSide(color: AppTheme.error)),
+            ),
+          ),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: AppTheme.primaryColor),
+        const SizedBox(width: 8),
+        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+      ],
+    );
+  }
+
+  void _showLanguagePicker() {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Select Language'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: ['English', 'Hindi', 'Tamil', 'Telugu', 'Kannada', 'Malayalam'].map((l) =>
+              ListTile(
+                title: Text(l),
+                leading: Icon(l == 'English' ? Icons.radio_button_checked : Icons.radio_button_unchecked, color: AppTheme.primaryColor),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Language set to $l (mock)')));
+                },
+              ),
+            ).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showClearDataDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Clear All Data?'),
+          content: const Text('This will permanently delete all local data including orders, products, and settings. This action cannot be undone.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error, foregroundColor: Colors.white),
+              onPressed: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('All data cleared (mock)')));
+              },
+              child: const Text('Delete All'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
