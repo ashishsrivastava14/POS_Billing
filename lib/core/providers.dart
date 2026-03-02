@@ -31,6 +31,16 @@ class AuthNotifier extends StateNotifier<AppUser?> {
   void logout() {
     state = null;
   }
+
+  void updateProfile({String? name, String? email, String? phone, String? password}) {
+    if (state == null) return;
+    state = state!.copyWith(
+      name: name,
+      email: email,
+      phone: phone,
+      password: password,
+    );
+  }
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AppUser?>((ref) => AuthNotifier());

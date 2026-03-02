@@ -21,8 +21,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _phoneCtrl = TextEditingController(text: '080-12345678');
 
   // Receipt settings
-  String _receiptHeader = AppConstants.receiptHeader;
-  String _receiptFooter = AppConstants.receiptFooter;
+  late final TextEditingController _receiptHeaderCtrl;
+  late final TextEditingController _receiptFooterCtrl;
   bool _showLogo = true;
   bool _showGST = true;
   String _paperSize = '80mm';
@@ -30,6 +30,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // Tax settings
   bool _gstEnabled = true;
   bool _inclusiveTax = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _receiptHeaderCtrl = TextEditingController(text: AppConstants.receiptHeader);
+    _receiptFooterCtrl = TextEditingController(text: AppConstants.receiptFooter);
+  }
+
+  @override
+  void dispose() {
+    _shopNameCtrl.dispose();
+    _shopAddressCtrl.dispose();
+    _gstCtrl.dispose();
+    _phoneCtrl.dispose();
+    _receiptHeaderCtrl.dispose();
+    _receiptFooterCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +95,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.edit),
-                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Edit profile (mock)'))),
+                    onPressed: () => _showEditProfileDialog(currentUser),
                   ),
                 ],
               ),
@@ -157,7 +175,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 children: [
                   DropdownButtonFormField<String>(
-                    initialValue: _paperSize,
+                    value: _paperSize,
                     decoration: const InputDecoration(labelText: 'Paper Size', prefixIcon: Icon(Icons.straighten)),
                     items: const [
                       DropdownMenuItem(value: '58mm', child: Text('58mm (Thermal)')),
@@ -180,14 +198,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   const SizedBox(height: 8),
                   TextField(
                     decoration: const InputDecoration(labelText: 'Receipt Header'),
-                    controller: TextEditingController(text: _receiptHeader),
-                    onChanged: (v) => _receiptHeader = v,
+                    controller: _receiptHeaderCtrl,
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     decoration: const InputDecoration(labelText: 'Receipt Footer'),
-                    controller: TextEditingController(text: _receiptFooter),
-                    onChanged: (v) => _receiptFooter = v,
+                    controller: _receiptFooterCtrl,
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -406,6 +422,134 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ).toList(),
           ),
+        );
+      },
+    );
+  }
+
+  void _showEditProfileDialog(currentUser) {
+    final nameCtrl = TextEditingController(text: currentUser?.name ?? '');
+    final emailCtrl = TextEditingController(text: currentUser?.email ?? '');
+    final phoneCtrl = TextEditingController(text: currentUser?.phone ?? '');
+    final passwordCtrl = TextEditingController();
+    final confirmPasswordCtrl = TextEditingController();
+    bool obscurePassword = true;
+    bool obscureConfirm = true;
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              title: const Text('Edit Profile'),
+              content: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: nameCtrl,
+                        decoration: const InputDecoration(labelText: 'Name', prefixIcon: Icon(Icons.person)),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: emailCtrl,
+                        decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email)),
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (v) => (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: phoneCtrl,
+                        decoration: const InputDecoration(labelText: 'Phone', prefixIcon: Icon(Icons.phone)),
+                        keyboardType: TextInputType.phone,
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: passwordCtrl,
+                        obscureText: obscurePassword,
+                        decoration: InputDecoration(
+                          labelText: 'New Password (optional)',
+                          prefixIcon: const Icon(Icons.lock),
+                          suffixIcon: IconButton(
+                            icon: Icon(obscurePassword ? Icons.visibility_off : Icons.visibility),
+                            onPressed: () => setDialogState(() => obscurePassword = !obscurePassword),
+                          ),
+                        ),
+                        validator: (v) {
+                          if (v != null && v.isNotEmpty && v.length < 4) {
+                            return 'Password must be at least 4 characters';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: confirmPasswordCtrl,
+                        obscureText: obscureConfirm,
+                        decoration: InputDecoration(
+                          labelText: 'Confirm Password',
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            icon: Icon(obscureConfirm ? Icons.visibility_off : Icons.visibility),
+                            onPressed: () => setDialogState(() => obscureConfirm = !obscureConfirm),
+                          ),
+                        ),
+                        validator: (v) {
+                          if (passwordCtrl.text.isNotEmpty && v != passwordCtrl.text) {
+                            return 'Passwords do not match';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      nameCtrl.dispose();
+                      emailCtrl.dispose();
+                      phoneCtrl.dispose();
+                      passwordCtrl.dispose();
+                      confirmPasswordCtrl.dispose();
+                    });
+                  },
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (!formKey.currentState!.validate()) return;
+                    ref.read(authProvider.notifier).updateProfile(
+                      name: nameCtrl.text.trim(),
+                      email: emailCtrl.text.trim(),
+                      phone: phoneCtrl.text.trim(),
+                      password: passwordCtrl.text.isNotEmpty ? passwordCtrl.text : null,
+                    );
+                    Navigator.pop(ctx);
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      nameCtrl.dispose();
+                      emailCtrl.dispose();
+                      phoneCtrl.dispose();
+                      passwordCtrl.dispose();
+                      confirmPasswordCtrl.dispose();
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Profile updated successfully')),
+                    );
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
