@@ -27,6 +27,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _showGST = true;
   String _paperSize = '80mm';
 
+  // Currency
+  Map<String, String> _selectedCurrency = {'code': 'INR', 'name': 'Indian Rupee', 'symbol': '₹', 'icon': 'currency_rupee'};
+
   // Tax settings
   bool _gstEnabled = true;
   bool _inclusiveTax = false;
@@ -126,11 +129,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const Divider(height: 1),
                 ListTile(
-                  leading: const Icon(Icons.currency_rupee, color: AppTheme.primaryColor),
+                  leading: Icon(_currencyIcon(_selectedCurrency['icon']!), color: AppTheme.primaryColor),
                   title: const Text('Currency'),
-                  subtitle: const Text('Indian Rupee (₹)'),
+                  subtitle: Text('${_selectedCurrency['name']} (${_selectedCurrency['symbol']})'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Currency selection (mock)'))),
+                  onTap: () => _showCurrencyPicker(),
                 ),
               ],
             ),
@@ -400,6 +403,74 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         const SizedBox(width: 8),
         Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
       ],
+    );
+  }
+
+  IconData _currencyIcon(String icon) {
+    switch (icon) {
+      case 'currency_pound': return Icons.currency_pound;
+      case 'currency_yen':   return Icons.currency_yen;
+      case 'euro':           return Icons.euro;
+      case 'attach_money':   return Icons.attach_money;
+      default:               return Icons.currency_rupee;
+    }
+  }
+
+  void _showCurrencyPicker() {
+    final currencies = [
+      {'code': 'INR', 'name': 'Indian Rupee',     'symbol': '₹',   'icon': 'currency_rupee'},
+      {'code': 'USD', 'name': 'US Dollar',         'symbol': '\$',   'icon': 'attach_money'},
+      {'code': 'EUR', 'name': 'Euro',              'symbol': '€',   'icon': 'euro'},
+      {'code': 'GBP', 'name': 'British Pound',     'symbol': '£',   'icon': 'currency_pound'},
+      {'code': 'JPY', 'name': 'Japanese Yen',      'symbol': '¥',   'icon': 'currency_yen'},
+      {'code': 'AED', 'name': 'UAE Dirham',        'symbol': 'د.إ', 'icon': 'attach_money'},
+      {'code': 'SGD', 'name': 'Singapore Dollar',  'symbol': 'S\$', 'icon': 'attach_money'},
+      {'code': 'AUD', 'name': 'Australian Dollar', 'symbol': 'A\$', 'icon': 'attach_money'},
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Select Currency'),
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: currencies.length,
+              itemBuilder: (_, i) {
+                final c = currencies[i];
+                final isSelected = c['code'] == _selectedCurrency['code'];
+                return ListTile(
+                  leading: Icon(
+                    _currencyIcon(c['icon']!),
+                    color: isSelected ? AppTheme.primaryColor : null,
+                  ),
+                  title: Text(c['name']!),
+                  subtitle: Text('${c['code']} • ${c['symbol']}'),
+                  trailing: isSelected
+                      ? const Icon(Icons.check_circle, color: AppTheme.primaryColor)
+                      : null,
+                  onTap: () {
+                    setState(() => _selectedCurrency = c);
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Currency set to ${c['name']} (${c['symbol']})')),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
     );
   }
 
