@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -34,6 +36,223 @@ class _ProductManagementScreenState
     );
   }
 
+  // ── CSV Import ────────────────────────────────────────────
+  Future<void> _importCsv() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final bytes = result.files.first.bytes;
+      if (bytes == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not read file contents')),
+          );
+        }
+        return;
+      }
+
+      final content = utf8.decode(bytes, allowMalformed: true);
+      final lines = content
+          .replaceAll('\r\n', '\n')
+          .replaceAll('\r', '\n')
+          .split('\n')
+          .where((l) => l.trim().isNotEmpty)
+          .toList();
+
+      if (lines.length < 2) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('CSV has no data rows (need header + at least 1 row)')),
+          );
+        }
+        return;
+      }
+
+      final headers = _parseCsvRow(lines.first)
+          .map((h) => h.trim().toLowerCase().replaceAll(' ', '_'))
+          .toList();
+
+      final categories = ref.read(categoriesProvider);
+      int imported = 0;
+      int failed = 0;
+      final errors = <String>[];
+
+      for (int i = 1; i < lines.length; i++) {
+        try {
+          final row = _parseCsvRow(lines[i]);
+          final product = _productFromRow(i + 1, headers, row, categories);
+          ref.read(productsProvider.notifier).add(product);
+          imported++;
+        } catch (e) {
+          failed++;
+          errors.add('Row ${i + 1}: $e');
+        }
+      }
+
+      if (mounted) _showImportResultDialog(imported, failed, errors);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Import error: $e')),
+        );
+      }
+    }
+  }
+
+  /// Parses a single CSV row, respecting double-quoted fields with commas.
+  List<String> _parseCsvRow(String row) {
+    final result = <String>[];
+    final buffer = StringBuffer();
+    bool inQuotes = false;
+    for (int i = 0; i < row.length; i++) {
+      final ch = row[i];
+      if (ch == '"') {
+        if (inQuotes && i + 1 < row.length && row[i + 1] == '"') {
+          buffer.write('"');
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (ch == ',' && !inQuotes) {
+        result.add(buffer.toString().trim());
+        buffer.clear();
+      } else {
+        buffer.write(ch);
+      }
+    }
+    result.add(buffer.toString().trim());
+    return result;
+  }
+
+  /// Builds a [Product] from a CSV row using the parsed headers.
+  /// Expected columns (order-independent, matched by header name):
+  /// name*, sku, barcode, category_name, brand, unit,
+  /// purchase_price*, selling_price*, tax_percent, stock_qty, min_stock_alert
+  Product _productFromRow(
+    int rowNum,
+    List<String> headers,
+    List<String> row,
+    List<dynamic> categories,
+  ) {
+    String col(String key) {
+      final idx = headers.indexOf(key);
+      if (idx == -1 || idx >= row.length) return '';
+      return row[idx].trim();
+    }
+
+    final name = col('name');
+    if (name.isEmpty) throw 'Missing required column "name"';
+
+    final purchaseStr = col('purchase_price');
+    final sellingStr = col('selling_price');
+    final purchase = double.tryParse(purchaseStr);
+    final selling = double.tryParse(sellingStr);
+    if (purchase == null) throw 'Invalid purchase_price "$purchaseStr"';
+    if (selling == null) throw 'Invalid selling_price "$sellingStr"';
+
+    final catName = col('category_name');
+    final matchedCat = categories.cast<dynamic>().firstWhere(
+          (c) => c.name.toLowerCase() == catName.toLowerCase(),
+          orElse: () => categories.isNotEmpty ? categories.first : null,
+        );
+    if (matchedCat == null) throw 'No categories found';
+
+    return Product(
+      id: 'p\${DateTime.now().microsecondsSinceEpoch}_$rowNum',
+      name: name,
+      sku: col('sku'),
+      barcode: col('barcode'),
+      categoryId: matchedCat.id as String,
+      categoryName: matchedCat.name as String,
+      brand: col('brand'),
+      unit: col('unit').isEmpty ? 'pcs' : col('unit'),
+      purchasePrice: purchase,
+      sellingPrice: selling,
+      taxPercent: double.tryParse(col('tax_percent')) ?? 0,
+      stockQty: int.tryParse(col('stock_qty')) ?? 0,
+      minStockAlert: int.tryParse(col('min_stock_alert')) ?? 5,
+      vendorId: 'v1',
+    );
+  }
+
+  void _showImportResultDialog(int imported, int failed, List<String> errors) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(
+              imported > 0 ? Icons.check_circle : Icons.error_outline,
+              color: imported > 0 ? AppTheme.success : AppTheme.error,
+            ),
+            const SizedBox(width: 10),
+            const Text('Import Result'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _resultChip('Imported', imported, AppTheme.success),
+            if (failed > 0) ...[const SizedBox(height: 8), _resultChip('Failed', failed, AppTheme.error)],
+            if (errors.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Text('Errors:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              const SizedBox(height: 6),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 160),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: errors
+                        .map((e) => Padding(
+                              padding: const EdgeInsets.only(bottom: 4),
+                              child: Text('• $e',
+                                  style: const TextStyle(fontSize: 12, color: AppTheme.error)),
+                            ))
+                        .toList(),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            Text(
+              'CSV format: name, sku, barcode, category_name, brand, unit, purchase_price, selling_price, tax_percent, stock_qty, min_stock_alert',
+              style: TextStyle(fontSize: 11, color: Colors.grey[500], fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _resultChip(String label, int count, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        '$label: $count products',
+        style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final products = ref.watch(productsProvider);
@@ -56,11 +275,7 @@ class _ProductManagementScreenState
           ),
           IconButton(
             icon: const Icon(Icons.upload_file),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('CSV import feature (mock)')),
-              );
-            },
+            onPressed: _importCsv,
           ),
         ],
       ),
