@@ -216,7 +216,7 @@ class _PosBillingScreenState extends ConsumerState<PosBillingScreen> {
                       padding: const EdgeInsets.all(12),
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: crossCount,
-                        childAspectRatio: 0.75,
+                        childAspectRatio: 0.68,
                         crossAxisSpacing: 10,
                         mainAxisSpacing: 10,
                       ),
@@ -275,9 +275,10 @@ class _PosBillingScreenState extends ConsumerState<PosBillingScreen> {
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(product.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
                       const Spacer(),
@@ -462,7 +463,9 @@ class _PosBillingScreenState extends ConsumerState<PosBillingScreen> {
             ),
           // Totals
           if (cart.isNotEmpty)
-            Container(
+            SafeArea(
+              top: false,
+              child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
@@ -492,6 +495,7 @@ class _PosBillingScreenState extends ConsumerState<PosBillingScreen> {
                   ),
                 ],
               ),
+            ),
             ),
         ],
       ),
