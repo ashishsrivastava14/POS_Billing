@@ -119,9 +119,7 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
                                 SnackBar(content: Text(user.isActive ? 'User deactivated' : 'User activated')),
                               );
                             } else if (action == 'reset') {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Password reset link sent (mock)')),
-                              );
+                              _showResetPasswordDialog(user);
                             }
                           },
                           itemBuilder: (_) => [
@@ -137,6 +135,114 @@ class _UserManagementScreenState extends ConsumerState<UserManagementScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showResetPasswordDialog(AppUser user) {
+    final newPassCtrl = TextEditingController();
+    final confirmPassCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool obscureNew = true;
+    bool obscureConfirm = true;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.lock_reset, color: AppTheme.primaryColor, size: 22),
+              ),
+              const SizedBox(width: 10),
+              const Text('Reset Password'),
+            ],
+          ),
+          content: Form(
+            key: formKey,
+            child: SizedBox(
+              width: 360,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Setting new password for ${user.name}',
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: newPassCtrl,
+                    obscureText: obscureNew,
+                    decoration: InputDecoration(
+                      labelText: 'New Password',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(obscureNew ? Icons.visibility_off : Icons.visibility),
+                        onPressed: () => setDialogState(() => obscureNew = !obscureNew),
+                      ),
+                    ),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Password is required';
+                      if (v.length < 6) return 'Minimum 6 characters';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: confirmPassCtrl,
+                    obscureText: obscureConfirm,
+                    decoration: InputDecoration(
+                      labelText: 'Confirm Password',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: const Icon(Icons.lock_outline),
+                      suffixIcon: IconButton(
+                        icon: Icon(obscureConfirm ? Icons.visibility_off : Icons.visibility),
+                        onPressed: () => setDialogState(() => obscureConfirm = !obscureConfirm),
+                      ),
+                    ),
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Please confirm password';
+                      if (v != newPassCtrl.text) return 'Passwords do not match';
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.check, size: 16),
+              label: const Text('Reset'),
+              onPressed: () {
+                if (!formKey.currentState!.validate()) return;
+                ref.read(usersProvider.notifier).update(
+                      user.copyWith(password: newPassCtrl.text.trim()),
+                    );
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Password reset for ${user.name}'),
+                    backgroundColor: AppTheme.success,
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
