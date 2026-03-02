@@ -32,38 +32,69 @@ class _SystemReportsScreenState extends ConsumerState<SystemReportsScreen> {
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.date_range, color: AppTheme.primaryColor),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        _dateRange != null
-                            ? '${formatDate(_dateRange!.start)} - ${formatDate(_dateRange!.end)}'
-                            : 'Select Date Range',
-                        style: const TextStyle(fontWeight: FontWeight.w500),
-                      ),
+                    Row(
+                      children: [
+                        const Icon(Icons.date_range, color: AppTheme.primaryColor),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _dateRange != null
+                                ? '${formatDate(_dateRange!.start)} – ${formatDate(_dateRange!.end)}'
+                                : 'Select Date Range',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w500,
+                              color: _dateRange != null ? null : Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                        if (_dateRange != null)
+                          IconButton(
+                            icon: const Icon(Icons.close, size: 18),
+                            tooltip: 'Clear',
+                            onPressed: () => setState(() => _dateRange = null),
+                          ),
+                      ],
                     ),
-                    OutlinedButton(
-                      onPressed: () async {
-                        final range = await showDateRangePicker(
-                          context: context,
-                          firstDate: DateTime(2024),
-                          lastDate: DateTime.now(),
-                        );
-                        if (range != null) setState(() => _dateRange = range);
-                      },
-                      child: const Text('Pick Dates'),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('PDF export generated (mock)')),
-                        );
-                      },
-                      icon: const Icon(Icons.picture_as_pdf, size: 18),
-                      label: const Text('Export PDF'),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () async {
+                              final range = await showDateRangePicker(
+                                context: context,
+                                firstDate: DateTime(2024),
+                                lastDate: DateTime.now(),
+                                initialDateRange: _dateRange,
+                              );
+                              if (range != null) setState(() => _dateRange = range);
+                            },
+                            icon: const Icon(Icons.calendar_month, size: 18),
+                            label: const Text('Pick Dates'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    _dateRange != null
+                                        ? 'Exporting report for ${formatDate(_dateRange!.start)} – ${formatDate(_dateRange!.end)}'
+                                        : 'Exporting full report as PDF…',
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.picture_as_pdf, size: 18),
+                            label: const Text('Export PDF'),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

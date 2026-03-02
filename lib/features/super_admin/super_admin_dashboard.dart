@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
 import '../../core/widgets/kpi_card.dart';
 import '../../core/widgets/app_drawer.dart';
@@ -22,7 +23,10 @@ class SuperAdminDashboard extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Super Admin Dashboard'),
         actions: [
-          IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: () => _showNotifications(context, ref),
+          ),
         ],
       ),
       drawer: const AppDrawer(),
@@ -35,11 +39,12 @@ class SuperAdminDashboard extends ConsumerWidget {
             LayoutBuilder(
               builder: (context, constraints) {
                 final crossCount = constraints.maxWidth > 800 ? 4 : 2;
+                final aspectRatio = constraints.maxWidth > 800 ? 1.5 : 1.0;
                 return GridView.count(
                   crossAxisCount: crossCount,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 1.5,
+                  childAspectRatio: aspectRatio,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
                   children: [
@@ -49,6 +54,7 @@ class SuperAdminDashboard extends ConsumerWidget {
                       icon: Icons.store,
                       color: AppTheme.primaryColor,
                       subtitle: '${vendors.where((v) => v.isActive).length} active',
+                      onTap: () => context.push('/super-admin/vendors'),
                     ),
                     KpiCard(
                       title: 'Total Revenue',
@@ -56,6 +62,7 @@ class SuperAdminDashboard extends ConsumerWidget {
                       icon: Icons.currency_rupee,
                       color: AppTheme.success,
                       subtitle: 'All time',
+                      onTap: () => context.push('/super-admin/reports'),
                     ),
                     KpiCard(
                       title: 'Active Sessions',
@@ -63,6 +70,7 @@ class SuperAdminDashboard extends ConsumerWidget {
                       icon: Icons.people,
                       color: AppTheme.info,
                       subtitle: 'Currently online',
+                      onTap: () => context.push('/super-admin/users'),
                     ),
                     KpiCard(
                       title: 'Total Orders',
@@ -70,6 +78,7 @@ class SuperAdminDashboard extends ConsumerWidget {
                       icon: Icons.receipt_long,
                       color: AppTheme.accentColor,
                       subtitle: 'This month',
+                      onTap: () => context.push('/super-admin/reports'),
                     ),
                   ],
                 );
@@ -246,7 +255,10 @@ class SuperAdminDashboard extends ConsumerWidget {
                           'Recent Activity',
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                         ),
-                        TextButton(onPressed: () {}, child: const Text('View All')),
+                        TextButton(
+                          onPressed: () => context.push('/super-admin/audit-logs'),
+                          child: const Text('View All'),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -269,6 +281,98 @@ class SuperAdminDashboard extends ConsumerWidget {
                   ],
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showNotifications(BuildContext context, WidgetRef ref) {
+    final logs = ref.read(auditLogsProvider).take(10).toList();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.55,
+        minChildSize: 0.35,
+        maxChildSize: 0.85,
+        expand: false,
+        builder: (context, scrollController) => Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Notifications',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      context.push('/super-admin/audit-logs');
+                    },
+                    child: const Text('View All'),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: logs.isEmpty
+                  ? const Center(child: Text('No recent notifications'))
+                  : ListView.separated(
+                      controller: scrollController,
+                      itemCount: logs.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final log = logs[index];
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: _getActionColor(log.action).withValues(alpha: 0.1),
+                            child: Icon(
+                              _getActionIcon(log.action),
+                              color: _getActionColor(log.action),
+                              size: 20,
+                            ),
+                          ),
+                          title: Text(log.details, style: const TextStyle(fontSize: 14)),
+                          subtitle: Text(
+                            '${log.userName} • ${formatDateTime(log.timestamp)}',
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          ),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _getActionColor(log.action).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              log.action,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: _getActionColor(log.action),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
