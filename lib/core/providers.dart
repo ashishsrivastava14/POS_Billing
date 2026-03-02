@@ -288,6 +288,13 @@ class ShiftNotifier extends StateNotifier<Shift?> {
 
 final shiftProvider = StateNotifierProvider<ShiftNotifier, Shift?>((ref) => ShiftNotifier());
 
+// ── SHIFT HISTORY PROVIDER ──
+final shiftHistoryProvider = StateProvider<List<Shift>>((ref) => []);
+
+// ── CASH MOVEMENTS PROVIDER (Cash In / Cash Out during shift) ──
+final cashMovementsProvider =
+    StateProvider<List<Map<String, dynamic>>>((ref) => []);
+
 // ── CART DISCOUNT PROVIDER ──
 final cartDiscountProvider = StateProvider<double?>((ref) => null);
 
