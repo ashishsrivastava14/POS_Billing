@@ -407,24 +407,40 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Card(
             child: Column(
               children: [
-                const ListTile(
-                  leading: Icon(Icons.info_outline, color: AppTheme.primaryColor),
-                  title: Text('App Version'),
-                  trailing: Text('1.0.0', style: TextStyle(fontWeight: FontWeight.w600)),
+                ListTile(
+                  leading: const Icon(Icons.info_outline, color: AppTheme.primaryColor),
+                  title: const Text('App Version'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(AppConstants.appVersion, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.chevron_right),
+                    ],
+                  ),
+                  onTap: () => _showAppInfoDialog(),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.policy, color: AppTheme.primaryColor),
                   title: const Text('Privacy Policy'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () {},
+                  onTap: () => _showPolicyDialog(
+                    title: 'Privacy Policy',
+                    icon: Icons.policy,
+                    content: _privacyPolicyText,
+                  ),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.description, color: AppTheme.primaryColor),
                   title: const Text('Terms & Conditions'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () {},
+                  onTap: () => _showPolicyDialog(
+                    title: 'Terms & Conditions',
+                    icon: Icons.description,
+                    content: _termsText,
+                  ),
                 ),
               ],
             ),
@@ -766,6 +782,168 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       },
     );
   }
+
+  void _showAppInfoDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline, color: AppTheme.primaryColor),
+            SizedBox(width: 8),
+            Text('App Info'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withValues(alpha: 0.07),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.point_of_sale, size: 56, color: AppTheme.primaryColor),
+            ),
+            const SizedBox(height: 16),
+            Text(AppConstants.appName,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text('Version ${AppConstants.appVersion}',
+                style: TextStyle(color: Colors.grey[600])),
+            const SizedBox(height: 16),
+            const Divider(),
+            _infoRow('Build Date',    'March 2, 2026'),
+            _infoRow('Platform',      'Flutter'),
+            _infoRow('Developer',     'InHouse Websites'),
+            _infoRow('Support',       'support@inhousewebsites.com'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+          Text(value,  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+        ],
+      ),
+    );
+  }
+
+  void _showPolicyDialog({required String title, required IconData icon, required String content}) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Icon(icon, color: AppTheme.primaryColor),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                ],
+              ),
+              const Divider(),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Text(content, style: const TextStyle(fontSize: 13, height: 1.6)),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('I Understand'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static const String _privacyPolicyText = '''
+Last updated: March 2, 2026
+
+1. INFORMATION WE COLLECT
+${AppConstants.appName} collects information you provide directly, such as shop name, GST number, and contact details entered during setup. All transaction data (orders, products, customers) is stored locally on your device.
+
+2. HOW WE USE YOUR INFORMATION
+We use the information solely to operate the POS system. No personal or business data is transmitted to external servers. All data remains on-device.
+
+3. DATA STORAGE & SECURITY
+All data is stored locally. We recommend performing regular backups using the Backup Data feature. We are not responsible for data loss due to device failure if backups have not been taken.
+
+4. SHARING OF INFORMATION
+We do not sell, trade, or transfer your data to third parties. Data is never shared without your explicit consent.
+
+5. THIRD-PARTY SERVICES
+This app does not integrate with any third-party analytics or advertising services.
+
+6. CHILDREN'S PRIVACY
+This application is intended for business use only and is not directed at children under the age of 13.
+
+7. CHANGES TO THIS POLICY
+We may update this Privacy Policy from time to time. Changes will be reflected in the app's About section with an updated date.
+
+8. CONTACT US
+For questions regarding this Privacy Policy, contact:
+${AppConstants.shopName}
+Email: support@inhousewebsites.com
+''';
+
+  static const String _termsText = '''
+Last updated: March 2, 2026
+
+1. ACCEPTANCE OF TERMS
+By using ${AppConstants.appName}, you agree to these Terms & Conditions. If you do not agree, please discontinue use of the application.
+
+2. LICENSE
+This software is licensed for use by the registered business only. Redistribution, resale, or reverse engineering of the application is strictly prohibited.
+
+3. USER RESPONSIBILITIES
+You are responsible for:
+• Maintaining the accuracy of shop, tax, and product data entered.
+• Keeping your login credentials secure.
+• Performing regular data backups.
+• Complying with applicable tax (GST) regulations in your jurisdiction.
+
+4. ACCURACY OF INFORMATION
+While we strive for accuracy, ${AppConstants.appName} does not guarantee that billing calculations are error-free in all edge cases. You are responsible for verifying totals before finalising transactions.
+
+5. DATA & PRIVACY
+All data is stored locally on your device. Refer to our Privacy Policy for full details.
+
+6. LIMITATION OF LIABILITY
+To the maximum extent permitted by law, ${AppConstants.appName} and its developers shall not be liable for any indirect, incidental, or consequential damages arising from the use or inability to use this application, including data loss.
+
+7. MODIFICATIONS
+We reserve the right to modify these Terms at any time. Continued use of the application after changes constitutes acceptance of the new Terms.
+
+8. GOVERNING LAW
+These Terms are governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of courts in Mumbai, Maharashtra.
+
+9. CONTACT
+For queries regarding these Terms, contact:
+support@inhousewebsites.com
+''';
 
   Widget _sectionHeader(String title, IconData icon) {
     return Row(
