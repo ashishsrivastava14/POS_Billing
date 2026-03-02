@@ -345,6 +345,41 @@ final receiptSettingsProvider =
     StateNotifierProvider<ReceiptSettingsNotifier, ReceiptSettings>(
         (ref) => ReceiptSettingsNotifier());
 
+// ── TAX SETTINGS PROVIDER ──
+class TaxSettings {
+  final bool gstEnabled;
+  final bool inclusiveTax;
+  final double defaultTaxRate;
+
+  const TaxSettings({
+    this.gstEnabled = true,
+    this.inclusiveTax = false,
+    this.defaultTaxRate = 18.0,
+  });
+
+  TaxSettings copyWith({
+    bool? gstEnabled,
+    bool? inclusiveTax,
+    double? defaultTaxRate,
+  }) {
+    return TaxSettings(
+      gstEnabled: gstEnabled ?? this.gstEnabled,
+      inclusiveTax: inclusiveTax ?? this.inclusiveTax,
+      defaultTaxRate: defaultTaxRate ?? this.defaultTaxRate,
+    );
+  }
+}
+
+class TaxSettingsNotifier extends StateNotifier<TaxSettings> {
+  TaxSettingsNotifier() : super(const TaxSettings());
+
+  void update(TaxSettings settings) => state = settings;
+}
+
+final taxSettingsProvider =
+    StateNotifierProvider<TaxSettingsNotifier, TaxSettings>(
+        (ref) => TaxSettingsNotifier());
+
 // ── CASH MOVEMENTS PROVIDER (Cash In / Cash Out during shift) ──
 final cashMovementsProvider =
     StateProvider<List<Map<String, dynamic>>>((ref) => []);

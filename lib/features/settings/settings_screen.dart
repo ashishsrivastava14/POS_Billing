@@ -33,6 +33,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // Tax settings
   bool _gstEnabled = true;
   bool _inclusiveTax = false;
+  double _defaultTaxRate = 18.0;
 
   @override
   void initState() {
@@ -43,6 +44,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _showGST   = rs.showGST;
     _receiptHeaderCtrl = TextEditingController(text: rs.header);
     _receiptFooterCtrl = TextEditingController(text: rs.footer);
+    final ts = ref.read(taxSettingsProvider);
+    _gstEnabled    = ts.gstEnabled;
+    _inclusiveTax  = ts.inclusiveTax;
+    _defaultTaxRate = ts.defaultTaxRate;
   }
 
   @override
@@ -259,9 +264,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 const Divider(height: 1),
                 ListTile(
                   title: const Text('Default Tax Rate'),
-                  subtitle: const Text('5%, 12%, 18%, 28%'),
-                  trailing: const Text('18%', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
-                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Tax rate config (mock)'))),
+                  subtitle: const Text('Tap to change GST slab'),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${_defaultTaxRate.toStringAsFixed(0)}%',
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                    ),
+                  ),
+                  onTap: _gstEnabled ? () => _showTaxRatePicker() : null,
+                ),
+                const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => _saveTaxSettings(),
+                      child: const Text('Save Tax Settings'),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -397,6 +423,62 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 32),
         ],
       ),
+    );
+  }
+
+  void _saveTaxSettings() {
+    ref.read(taxSettingsProvider.notifier).update(
+      TaxSettings(
+        gstEnabled:     _gstEnabled,
+        inclusiveTax:   _inclusiveTax,
+        defaultTaxRate: _defaultTaxRate,
+      ),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Tax settings saved'),
+        backgroundColor: AppTheme.success,
+      ),
+    );
+  }
+
+  void _showTaxRatePicker() {
+    const rates = [0.0, 5.0, 12.0, 18.0, 28.0];
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Select Default Tax Rate'),
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: rates.map((rate) {
+              final isSelected = rate == _defaultTaxRate;
+              final label = rate == 0.0 ? 'No Tax (0%)' : '${rate.toStringAsFixed(0)}%';
+              return ListTile(
+                title: Text(label),
+                leading: Icon(
+                  isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                  color: AppTheme.primaryColor,
+                ),
+                trailing: isSelected
+                    ? const Icon(Icons.check_circle, color: AppTheme.primaryColor)
+                    : null,
+                onTap: () {
+                  setState(() => _defaultTaxRate = rate);
+                  Navigator.pop(ctx);
+                },
+              );
+            }).toList(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
     );
   }
 
