@@ -37,8 +37,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    _receiptHeaderCtrl = TextEditingController(text: AppConstants.receiptHeader);
-    _receiptFooterCtrl = TextEditingController(text: AppConstants.receiptFooter);
+    final rs = ref.read(receiptSettingsProvider);
+    _paperSize = rs.paperSize;
+    _showLogo  = rs.showLogo;
+    _showGST   = rs.showGST;
+    _receiptHeaderCtrl = TextEditingController(text: rs.header);
+    _receiptFooterCtrl = TextEditingController(text: rs.footer);
   }
 
   @override
@@ -213,7 +217,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Print test receipt (mock)'))),
+                          onPressed: () => _showTestPrintPreview(),
                           icon: const Icon(Icons.print, size: 18),
                           label: const Text('Test Print'),
                         ),
@@ -221,7 +225,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Receipt settings saved (mock)'))),
+                          onPressed: () => _saveReceiptSettings(),
                           child: const Text('Save'),
                         ),
                       ),
@@ -393,6 +397,153 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 32),
         ],
       ),
+    );
+  }
+
+  void _saveReceiptSettings() {
+    ref.read(receiptSettingsProvider.notifier).update(
+      ReceiptSettings(
+        paperSize: _paperSize,
+        showLogo:  _showLogo,
+        showGST:   _showGST,
+        header:    _receiptHeaderCtrl.text.trim(),
+        footer:    _receiptFooterCtrl.text.trim(),
+      ),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Receipt settings saved'),
+        backgroundColor: AppTheme.success,
+      ),
+    );
+  }
+
+  void _showTestPrintPreview() {
+    final currentUser = ref.read(authProvider);
+    final header = _receiptHeaderCtrl.text.trim();
+    final footer = _receiptFooterCtrl.text.trim();
+    final now = DateTime.now();
+    final dateStr =
+        '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}  '
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Row(
+            children: const [
+              Icon(Icons.receipt_long, size: 20),
+              SizedBox(width: 8),
+              Text('Receipt Preview'),
+            ],
+          ),
+          contentPadding: const EdgeInsets.all(16),
+          content: SingleChildScrollView(
+            child: Container(
+              width: 260,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: DefaultTextStyle(
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.black,
+                  fontFamily: 'monospace',
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    if (_showLogo)
+                      Column(
+                        children: [
+                          const Icon(Icons.store, size: 36, color: Colors.black),
+                          const SizedBox(height: 4),
+                        ],
+                      ),
+                    Text(
+                      AppConstants.shopName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.black,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(AppConstants.shopAddress, textAlign: TextAlign.center, style: const TextStyle(color: Colors.black, fontSize: 11)),
+                    Text(AppConstants.shopPhone,   textAlign: TextAlign.center, style: const TextStyle(color: Colors.black, fontSize: 11)),
+                    if (_showGST) ...[
+                      const SizedBox(height: 2),
+                      Text('GSTIN: ${AppConstants.gstNumber}', textAlign: TextAlign.center, style: const TextStyle(color: Colors.black, fontSize: 11)),
+                    ],
+                    const SizedBox(height: 6),
+                    const Divider(color: Colors.black, thickness: 1),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('TEST RECEIPT', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                        Text(dateStr, style: const TextStyle(color: Colors.black)),
+                      ],
+                    ),
+                    if (currentUser != null)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Cashier: ${currentUser.name}', style: const TextStyle(color: Colors.black)),
+                      ),
+                    Text('Paper: $_paperSize', style: const TextStyle(color: Colors.black)),
+                    const Divider(color: Colors.black, thickness: 1),
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Sample Item x2', style: TextStyle(color: Colors.black)),
+                        Text('₹200.00',        style: TextStyle(color: Colors.black)),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    const Divider(color: Colors.black, thickness: 1),
+                    if (_showGST)
+                      const Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('GST (18%)', style: TextStyle(color: Colors.black)),
+                          Text('₹36.00',   style: TextStyle(color: Colors.black)),
+                        ],
+                      ),
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('TOTAL', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                        Text('₹236.00', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                      ],
+                    ),
+                    const Divider(color: Colors.black, thickness: 1),
+                    if (header.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(header, textAlign: TextAlign.center, style: const TextStyle(color: Colors.black)),
+                    ],
+                    if (footer.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(footer, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: Colors.black)),
+                    ],
+                    const SizedBox(height: 4),
+                    const Text('* * *', style: TextStyle(color: Colors.black)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Close'),
+            ),
+          ],
+        );
+      },
     );
   }
 

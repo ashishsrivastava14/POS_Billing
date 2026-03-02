@@ -11,6 +11,7 @@ import '../mock_data/users_mock.dart';
 import '../mock_data/products_mock.dart';
 import '../mock_data/vendors_mock.dart';
 import '../mock_data/orders_mock.dart';
+import 'constants/app_constants.dart';
 
 // ── AUTH PROVIDER ──
 class AuthNotifier extends StateNotifier<AppUser?> {
@@ -300,6 +301,49 @@ final shiftProvider = StateNotifierProvider<ShiftNotifier, Shift?>((ref) => Shif
 
 // ── SHIFT HISTORY PROVIDER ──
 final shiftHistoryProvider = StateProvider<List<Shift>>((ref) => []);
+
+// ── RECEIPT SETTINGS PROVIDER ──
+class ReceiptSettings {
+  final String paperSize;
+  final bool showLogo;
+  final bool showGST;
+  final String header;
+  final String footer;
+
+  const ReceiptSettings({
+    this.paperSize = '80mm',
+    this.showLogo = true,
+    this.showGST = true,
+    this.header = AppConstants.receiptHeader,
+    this.footer = AppConstants.receiptFooter,
+  });
+
+  ReceiptSettings copyWith({
+    String? paperSize,
+    bool? showLogo,
+    bool? showGST,
+    String? header,
+    String? footer,
+  }) {
+    return ReceiptSettings(
+      paperSize: paperSize ?? this.paperSize,
+      showLogo: showLogo ?? this.showLogo,
+      showGST: showGST ?? this.showGST,
+      header: header ?? this.header,
+      footer: footer ?? this.footer,
+    );
+  }
+}
+
+class ReceiptSettingsNotifier extends StateNotifier<ReceiptSettings> {
+  ReceiptSettingsNotifier() : super(const ReceiptSettings());
+
+  void update(ReceiptSettings settings) => state = settings;
+}
+
+final receiptSettingsProvider =
+    StateNotifierProvider<ReceiptSettingsNotifier, ReceiptSettings>(
+        (ref) => ReceiptSettingsNotifier());
 
 // ── CASH MOVEMENTS PROVIDER (Cash In / Cash Out during shift) ──
 final cashMovementsProvider =
