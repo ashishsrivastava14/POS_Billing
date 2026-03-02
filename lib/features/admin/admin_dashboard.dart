@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:go_router/go_router.dart';
 import '../../app/theme.dart';
 import '../../core/widgets/kpi_card.dart';
 import '../../core/widgets/app_drawer.dart';
@@ -51,24 +52,28 @@ class AdminDashboard extends ConsumerWidget {
                       value: formatCompactCurrency(todaySales),
                       icon: Icons.currency_rupee,
                       color: AppTheme.success,
+                      onTap: () => context.go('/reports/sales'),
                     ),
                     KpiCard(
                       title: 'Orders Count',
                       value: completedOrders.length.toString(),
                       icon: Icons.receipt_long,
                       color: AppTheme.primaryColor,
+                      onTap: () => context.go('/reports/sales'),
                     ),
                     KpiCard(
                       title: 'Low Stock Alerts',
                       value: lowStockCount.toString(),
                       icon: Icons.warning_amber,
                       color: lowStockCount > 0 ? AppTheme.warning : AppTheme.success,
+                      onTap: () => context.go('/admin/inventory'),
                     ),
                     KpiCard(
                       title: 'Total Products',
                       value: products.length.toString(),
                       icon: Icons.inventory,
                       color: AppTheme.info,
+                      onTap: () => context.go('/admin/products'),
                     ),
                   ],
                 );
@@ -203,7 +208,16 @@ class AdminDashboard extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Top Selling Products', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Top Selling Products', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                        TextButton(
+                          onPressed: () => context.go('/admin/products'),
+                          child: const Text('View All'),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 12),
                     ...products.take(5).map((p) => ListTile(
                       contentPadding: EdgeInsets.zero,
@@ -224,6 +238,7 @@ class AdminDashboard extends ConsumerWidget {
                       title: Text(p.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                       subtitle: Text(p.categoryName, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                       trailing: Text(formatCurrency(p.sellingPrice), style: const TextStyle(fontWeight: FontWeight.w600)),
+                      onTap: () => context.go('/admin/products'),
                     )),
                   ],
                 ),

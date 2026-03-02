@@ -5,6 +5,7 @@ import '../../app/theme.dart';
 import '../../core/providers.dart';
 import '../../core/widgets/app_drawer.dart';
 import '../../core/constants/app_constants.dart';
+import '../../models/user.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -195,7 +196,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 children: [
                   DropdownButtonFormField<String>(
-                    value: _paperSize,
+                    initialValue: _paperSize,
                     decoration: const InputDecoration(labelText: 'Paper Size', prefixIcon: Icon(Icons.straighten)),
                     items: const [
                       DropdownMenuItem(value: '58mm', child: Text('58mm (Thermal)')),
@@ -1047,7 +1048,7 @@ support@inhousewebsites.com
     );
   }
 
-  void _showEditProfileDialog(currentUser) {
+  void _showEditProfileDialog(AppUser? currentUser) {
     final nameCtrl = TextEditingController(text: currentUser?.name ?? '');
     final emailCtrl = TextEditingController(text: currentUser?.email ?? '');
     final phoneCtrl = TextEditingController(text: currentUser?.phone ?? '');
