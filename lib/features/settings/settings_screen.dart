@@ -35,6 +35,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _inclusiveTax = false;
   double _defaultTaxRate = 18.0;
 
+  // Bluetooth printer
+  String? _btConnectedDevice;
+  bool _btScanning = false;
+
   @override
   void initState() {
     super.initState();
@@ -325,17 +329,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.grey.withValues(alpha: 0.1),
+                      color: (_btConnectedDevice != null ? AppTheme.success : Colors.grey).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.bluetooth, color: Colors.grey),
+                    child: Icon(
+                      Icons.bluetooth,
+                      color: _btConnectedDevice != null ? AppTheme.success : Colors.grey,
+                    ),
                   ),
-                  title: const Text('Bluetooth Printer'),
-                  subtitle: const Text('Not connected'),
-                  trailing: OutlinedButton(
-                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Scanning for Bluetooth printers (mock)...'))),
-                    child: const Text('Scan'),
-                  ),
+                  title: Text(_btConnectedDevice ?? 'Bluetooth Printer'),
+                  subtitle: Text(_btConnectedDevice != null ? 'Connected' : 'Not connected'),
+                  trailing: _btConnectedDevice != null
+                      ? OutlinedButton(
+                          onPressed: () => setState(() => _btConnectedDevice = null),
+                          style: OutlinedButton.styleFrom(foregroundColor: AppTheme.error, side: const BorderSide(color: AppTheme.error)),
+                          child: const Text('Disconnect'),
+                        )
+                      : OutlinedButton(
+                          onPressed: _btScanning ? null : () => _showBluetoothScanDialog(),
+                          child: _btScanning
+                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                              : const Text('Scan'),
+                        ),
                 ),
               ],
             ),
@@ -424,6 +439,119 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  void _showBluetoothScanDialog() {
+    final mockDevices = [
+      {'name': 'XP-58 Thermal Printer',  'address': 'AA:BB:CC:11:22:33', 'signal': 'Strong'},
+      {'name': 'BT Printer PT-210',       'address': 'DD:EE:FF:44:55:66', 'signal': 'Good'},
+      {'name': 'RPP300 Mobile Printer',   'address': '11:22:33:AA:BB:CC', 'signal': 'Weak'},
+    ];
+
+    setState(() => _btScanning = true);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.bluetooth_searching, size: 20),
+              SizedBox(width: 8),
+              Text('Scan for Printers'),
+            ],
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: FutureBuilder(
+              future: Future.delayed(const Duration(seconds: 2)),
+              builder: (_, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const SizedBox(
+                    height: 100,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('Scanning for Bluetooth printers...'),
+                      ],
+                    ),
+                  );
+                }
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${mockDevices.length} device(s) found',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: 8),
+                    ...mockDevices.map((device) => ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.print, color: AppTheme.primaryColor),
+                      title: Text(device['name']!),
+                      subtitle: Text(device['address']!, style: const TextStyle(fontSize: 11)),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            device['signal'] == 'Strong'
+                                ? Icons.signal_wifi_4_bar
+                                : device['signal'] == 'Good'
+                                    ? Icons.network_wifi_3_bar
+                                    : Icons.network_wifi_1_bar,
+                            size: 16,
+                            color: device['signal'] == 'Strong'
+                                ? AppTheme.success
+                                : device['signal'] == 'Good'
+                                    ? AppTheme.accentColor
+                                    : AppTheme.error,
+                          ),
+                          const SizedBox(width: 6),
+                          ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                _btConnectedDevice = device['name'];
+                                _btScanning = false;
+                              });
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Connected to ${device['name']}'),
+                                  backgroundColor: AppTheme.success,
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text('Connect', style: TextStyle(fontSize: 12)),
+                          ),
+                        ],
+                      ),
+                    )),
+                  ],
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                setState(() => _btScanning = false);
+                Navigator.pop(ctx);
+              },
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    ).whenComplete(() => setState(() => _btScanning = false));
   }
 
   void _saveTaxSettings() {
