@@ -42,7 +42,7 @@ class AdminDashboard extends ConsumerWidget {
                   crossAxisCount: crossCount,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 1.5,
+                  childAspectRatio: constraints.maxWidth > 800 ? 1.5 : 1.2,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
                   children: [
