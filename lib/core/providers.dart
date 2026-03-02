@@ -64,6 +64,8 @@ class VendorsNotifier extends StateNotifier<List<Vendor>> {
   void toggleActive(String id) {
     state = state.map((v) => v.id == id ? v.copyWith(isActive: !v.isActive) : v).toList();
   }
+
+  void reset() => state = mockVendors;
 }
 
 final vendorsProvider = StateNotifierProvider<VendorsNotifier, List<Vendor>>((ref) => VendorsNotifier());
@@ -83,6 +85,8 @@ class UsersNotifier extends StateNotifier<List<AppUser>> {
   void toggleActive(String id) {
     state = state.map((u) => u.id == id ? u.copyWith(isActive: !u.isActive) : u).toList();
   }
+
+  void reset() => state = mockUsers;
 }
 
 final usersProvider = StateNotifierProvider<UsersNotifier, List<AppUser>>((ref) => UsersNotifier());
@@ -102,6 +106,8 @@ class CategoriesNotifier extends StateNotifier<List<Category>> {
   void delete(String id) {
     state = state.where((c) => c.id != id).toList();
   }
+
+  void reset() => state = mockCategories;
 }
 
 final categoriesProvider = StateNotifierProvider<CategoriesNotifier, List<Category>>((ref) => CategoriesNotifier());
@@ -130,6 +136,8 @@ class ProductsNotifier extends StateNotifier<List<Product>> {
       return p;
     }).toList();
   }
+
+  void reset() => state = mockProducts;
 }
 
 final productsProvider = StateNotifierProvider<ProductsNotifier, List<Product>>((ref) => ProductsNotifier());
@@ -149,6 +157,8 @@ class CustomersNotifier extends StateNotifier<List<Customer>> {
   void delete(String id) {
     state = state.where((c) => c.id != id).toList();
   }
+
+  void reset() => state = mockCustomers;
 }
 
 final customersProvider = StateNotifierProvider<CustomersNotifier, List<Customer>>((ref) => CustomersNotifier());
@@ -168,6 +178,8 @@ class OrdersNotifier extends StateNotifier<List<Order>> {
   void remove(String id) {
     state = state.where((o) => o.id != id).toList();
   }
+
+  void reset() => state = mockOrders;
 }
 
 final ordersProvider = StateNotifierProvider<OrdersNotifier, List<Order>>((ref) => OrdersNotifier());

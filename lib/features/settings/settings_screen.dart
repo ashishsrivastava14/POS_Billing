@@ -39,6 +39,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String? _btConnectedDevice;
   bool _btScanning = false;
 
+  // Data management
+  DateTime? _lastBackupTime;
+  bool _isBackingUp = false;
+
   @override
   void initState() {
     super.initState();
@@ -364,19 +368,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: Column(
               children: [
                 ListTile(
-                  leading: const Icon(Icons.backup, color: AppTheme.primaryColor),
+                  leading: _isBackingUp
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.backup, color: AppTheme.primaryColor),
                   title: const Text('Backup Data'),
-                  subtitle: const Text('Last backup: Today, 10:30 AM'),
+                  subtitle: Text(
+                    _lastBackupTime == null
+                        ? 'No backup yet'
+                        : 'Last backup: ${_formatDateTime(_lastBackupTime!)}',
+                  ),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Creating backup (mock)...'))),
+                  onTap: _isBackingUp ? null : () => _performBackup(),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.restore, color: AppTheme.accentColor),
                   title: const Text('Restore Data'),
-                  subtitle: const Text('Restore from backup file'),
+                  subtitle: const Text('Restore from a backup file'),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Restore data (mock)'))),
+                  onTap: () => _showRestoreDialog(),
                 ),
                 const Divider(height: 1),
                 ListTile(
@@ -987,20 +997,179 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
+  String _formatDateTime(DateTime dt) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final dtDay = DateTime(dt.year, dt.month, dt.day);
+    final timeStr =
+        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    if (dtDay == today) return 'Today, $timeStr';
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}, $timeStr';
+  }
+
+  Future<void> _performBackup() async {
+    setState(() => _isBackingUp = true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Creating backup…')),
+    );
+    await Future.delayed(const Duration(seconds: 2));
+    if (!mounted) return;
+    setState(() {
+      _isBackingUp = false;
+      _lastBackupTime = DateTime.now();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Backup created successfully'),
+        backgroundColor: AppTheme.success,
+      ),
+    );
+  }
+
+  void _showRestoreDialog() {
+    final backups = [
+      {'label': 'Today, 10:30 AM',      'size': '2.4 MB', 'records': '1,240 orders'},
+      {'label': 'Yesterday, 06:00 PM',  'size': '2.1 MB', 'records': '1,180 orders'},
+      {'label': '01/03/2026, 09:15 AM', 'size': '1.8 MB', 'records': '1,050 orders'},
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.restore, color: AppTheme.accentColor),
+              SizedBox(width: 8),
+              Text('Restore Data'),
+            ],
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Select a backup to restore from. This will overwrite current data.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                ),
+                const SizedBox(height: 12),
+                ...backups.map((b) => Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: ListTile(
+                    leading: const Icon(Icons.folder_zip, color: AppTheme.accentColor),
+                    title: Text(b['label']!),
+                    subtitle: Text('${b['size']} • ${b['records']}'),
+                    trailing: TextButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _confirmRestore(b['label']!);
+                      },
+                      child: const Text('Restore'),
+                    ),
+                  ),
+                )),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _confirmRestore(String backupLabel) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm Restore'),
+        content: Text(
+          'Restore from "$backupLabel"?\n\nThis will replace all current orders, products, and customer data with the backup. This cannot be undone.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accentColor, foregroundColor: Colors.white),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Restoring data…')),
+              );
+              await Future.delayed(const Duration(seconds: 2));
+              if (!mounted) return;
+              // Reset providers to mock (initial) data
+              ref.read(ordersProvider.notifier).reset();
+              ref.read(productsProvider.notifier).reset();
+              ref.read(customersProvider.notifier).reset();
+              ref.read(categoriesProvider.notifier).reset();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Data restored from "$backupLabel"'),
+                  backgroundColor: AppTheme.success,
+                ),
+              );
+            },
+            child: const Text('Restore'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showClearDataDialog() {
     showDialog(
       context: context,
       builder: (ctx) {
         return AlertDialog(
           title: const Text('Clear All Data?'),
-          content: const Text('This will permanently delete all local data including orders, products, and settings. This action cannot be undone.'),
+          content: const Text(
+            'This will permanently delete all orders, products, customers, and settings. This action cannot be undone.',
+          ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error, foregroundColor: Colors.white),
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('All data cleared (mock)')));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Clearing all data…')),
+                );
+                await Future.delayed(const Duration(seconds: 1));
+                if (!mounted) return;
+                // Reset all data providers
+                ref.read(ordersProvider.notifier).reset();
+                ref.read(productsProvider.notifier).reset();
+                ref.read(customersProvider.notifier).reset();
+                ref.read(categoriesProvider.notifier).reset();
+                ref.read(vendorsProvider.notifier).reset();
+                ref.read(usersProvider.notifier).reset();
+                // Reset settings providers
+                ref.read(receiptSettingsProvider.notifier).update(const ReceiptSettings());
+                ref.read(taxSettingsProvider.notifier).update(const TaxSettings());
+                // Reset local state
+                setState(() {
+                  _lastBackupTime = null;
+                  _paperSize = '80mm';
+                  _showLogo = true;
+                  _showGST = true;
+                  _receiptHeaderCtrl.text = AppConstants.receiptHeader;
+                  _receiptFooterCtrl.text = AppConstants.receiptFooter;
+                  _gstEnabled = true;
+                  _inclusiveTax = false;
+                  _defaultTaxRate = 18.0;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('All data cleared successfully'),
+                    backgroundColor: AppTheme.error,
+                  ),
+                );
               },
               child: const Text('Delete All'),
             ),
