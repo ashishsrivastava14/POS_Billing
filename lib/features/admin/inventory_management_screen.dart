@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/theme.dart';
 import '../../core/providers.dart';
+import '../../core/utils/product_image.dart';
 import '../../core/widgets/app_drawer.dart';
 
 class InventoryManagementScreen extends ConsumerStatefulWidget {
@@ -119,10 +120,16 @@ class _InventoryManagementScreenState extends ConsumerState<InventoryManagementS
                     Container(
                       width: 32, height: 32,
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(6),
                       ),
-                      child: const Icon(Icons.shopping_bag, size: 18, color: AppTheme.primaryColor),
+                      clipBehavior: Clip.antiAlias,
+                      child: ProductImage(
+                        productId: p.id,
+                        width: 32,
+                        height: 32,
+                        fit: BoxFit.cover,
+                        placeholderColor: AppTheme.primaryColor,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(child: Text(p.name, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600))),

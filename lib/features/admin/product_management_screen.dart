@@ -4,6 +4,7 @@ import '../../app/theme.dart';
 import '../../core/providers.dart';
 import '../../core/widgets/app_drawer.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/utils/product_image.dart';
 import '../../models/product.dart';
 
 class ProductManagementScreen extends ConsumerStatefulWidget {
@@ -138,7 +139,14 @@ class _ProductManagementScreenState extends ConsumerState<ProductManagementScree
                       color: AppTheme.primaryColor.withValues(alpha: 0.06),
                       child: Stack(
                         children: [
-                          const Center(child: Icon(Icons.shopping_bag, size: 40, color: AppTheme.primaryColor)),
+                          Positioned.fill(
+                            child: ProductImage(
+                              productId: p.id,
+                              height: 80,
+                              fit: BoxFit.cover,
+                              placeholderColor: AppTheme.primaryColor,
+                            ),
+                          ),
                           if (p.isLowStock || p.isOutOfStock)
                             Positioned(
                               top: 8, right: 8,
@@ -200,10 +208,16 @@ class _ProductManagementScreenState extends ConsumerState<ProductManagementScree
             leading: Container(
               width: 48, height: 48,
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.shopping_bag, color: AppTheme.primaryColor),
+              clipBehavior: Clip.antiAlias,
+              child: ProductImage(
+                productId: p.id,
+                width: 48,
+                height: 48,
+                fit: BoxFit.cover,
+                placeholderColor: AppTheme.primaryColor,
+              ),
             ),
             title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
             subtitle: Text('${p.sku} • ${p.brand} • ${p.categoryName}', style: TextStyle(fontSize: 12, color: Colors.grey[600])),

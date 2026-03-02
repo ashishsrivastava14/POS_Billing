@@ -5,6 +5,7 @@ import '../../app/theme.dart';
 import '../../core/widgets/kpi_card.dart';
 import '../../core/widgets/app_drawer.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/utils/product_image.dart';
 import '../../core/providers.dart';
 import '../../models/order.dart';
 import 'dart:math';
@@ -209,10 +210,16 @@ class AdminDashboard extends ConsumerWidget {
                       leading: Container(
                         width: 44, height: 44,
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryColor.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.shopping_bag, color: AppTheme.primaryColor),
+                        clipBehavior: Clip.antiAlias,
+                        child: ProductImage(
+                          productId: p.id,
+                          width: 44,
+                          height: 44,
+                          fit: BoxFit.cover,
+                          placeholderColor: AppTheme.primaryColor,
+                        ),
                       ),
                       title: Text(p.name, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                       subtitle: Text(p.categoryName, style: TextStyle(fontSize: 12, color: Colors.grey[600])),

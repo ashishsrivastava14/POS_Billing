@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../app/theme.dart';
 import '../../core/providers.dart';
 import '../../core/utils/formatters.dart';
+import '../../core/utils/product_image.dart';
 import '../../core/widgets/app_drawer.dart';
 import '../../models/product.dart';
 import '../../models/cart_item.dart';
@@ -255,24 +255,12 @@ class _PosBillingScreenState extends ConsumerState<PosBillingScreen> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    CachedNetworkImage(
-                      imageUrl: product.imageUrl ?? 'https://picsum.photos/seed/${product.sku}/200/200',
+                    ProductImage(
+                      productId: product.id,
+                      height: 90,
+                      width: double.infinity,
                       fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.06),
-                        child: const Center(
-                          child: SizedBox(
-                            width: 20, height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: AppTheme.primaryColor.withValues(alpha: 0.06),
-                        child: const Center(
-                          child: Icon(Icons.shopping_bag_outlined, size: 32, color: AppTheme.primaryColor),
-                        ),
-                      ),
+                      placeholderColor: AppTheme.primaryColor,
                     ),
                     if (isOut)
                       Center(
