@@ -116,7 +116,7 @@ class _CustomerManagementScreenState extends ConsumerState<CustomerManagementScr
                                 color: o.status.name == 'completed' ? AppTheme.success : o.status.name == 'cancelled' ? AppTheme.error : AppTheme.warning,
                                 size: 20,
                               ),
-                              title: Text('#${o.id.substring(0, 8)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                              title: Text(o.invoiceNumber, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                               subtitle: Text(formatDate(o.createdAt), style: const TextStyle(fontSize: 11)),
                               trailing: Text(formatCurrency(o.totalAmount), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
                             )),

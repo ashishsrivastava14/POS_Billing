@@ -393,7 +393,7 @@ class _InvoiceScreenState extends ConsumerState<InvoiceScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Invoice #${order.id.substring(0, 12)}',
+                        'Invoice ${order.invoiceNumber}',
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 12,

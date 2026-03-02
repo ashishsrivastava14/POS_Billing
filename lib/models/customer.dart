@@ -21,7 +21,7 @@ class Customer {
     String? id,
     String? name,
     String? phone,
-    String? email,
+    Object? email = _unset,
     double? totalPurchases,
     int? orderCount,
     DateTime? createdAt,
@@ -30,10 +30,12 @@ class Customer {
       id: id ?? this.id,
       name: name ?? this.name,
       phone: phone ?? this.phone,
-      email: email ?? this.email,
+      email: email == _unset ? this.email : email as String?,
       totalPurchases: totalPurchases ?? this.totalPurchases,
       orderCount: orderCount ?? this.orderCount,
       createdAt: createdAt ?? this.createdAt,
     );
   }
 }
+
+const Object _unset = Object();
